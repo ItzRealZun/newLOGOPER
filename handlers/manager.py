@@ -3,7 +3,7 @@ from aiogram.filters import CommandStart, Command
 from aiogram.types import CallbackQuery, Message
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
-import keyboards as kb
+import handlers.keyboards as kb
 
 class Auth(StatesGroup):
     id = State()
