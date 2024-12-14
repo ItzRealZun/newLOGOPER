@@ -5,11 +5,11 @@ from dataclasses import dataclass
 
 @dataclass
 class DatabaseConfig:
-    database: str         # Название БД
-    db_host: str          # URL-адрес БД
-    db_user: str          # Username пользователя БД
-    db_password: str      # Пароль БД
-    db_port: str          # Порт БД
+    database: str         
+    db_host: str          
+    db_user: str          
+    db_password: str      
+    db_port: str          
     def to_dict(self) -> dict[str, str]:
         return {"database": self.database, 
                 "db_host": self.db_host, 
@@ -20,7 +20,7 @@ class DatabaseConfig:
 
 @dataclass
 class TgBot:
-    token: str            # Токен для доступа к телеграм-боту
+    token: str
 
 
 @dataclass
