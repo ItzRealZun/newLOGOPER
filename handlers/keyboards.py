@@ -52,12 +52,6 @@ stages: Final[dict[str, Stage]] = {
                                                          [buttons["geography_button"]],
                                                          [create_return_button("menu")]])),
 
-    "order":           Stage(("Заказ №1\n□ - этап 1\n□ - этап 2\n"
-                            "□ - этап 3\n■ - этап 4\n□ - этап 5\n"
-                            " Вес груза: ???\n Количество контейнеров: ???"),
-                             i_keyboard(inline_keyboard=[[buttons["ask_chat_button"]], 
-                                                         [create_return_button("orders")]])),
-
     "chat":            Stage("Скоро с вами свяжется менеджер. Для завершения диалога напишите /stop",
                              empty_keyboard()),
 
@@ -102,7 +96,8 @@ stages: Final[dict[str, Stage]] = {
     "EKATERINBURG":    Stage("Контакты ЛОГОПЕР по городу Екатеринбург:\nАдрес: ул. Розы Люксембург, 22, офис 714\nРежим работы: пн-чт: 09:00–18:00, пт: 09:00–16:45\nТелефон: +73432287099\nEmail: sale@logoper.ru",
                              i_keyboard(inline_keyboard=[[create_return_button("contacts")]])),
 
-    "geography":       Stage("<здесь будет картинка>", i_keyboard(inline_keyboard=[[create_return_button("info")]]))
+    "geography":       Stage("География наших перевозок на картинке ниже", 
+                             i_keyboard(inline_keyboard=[[create_return_button("info")]]))
 }
 
 def create_rating_stage(parameter: str) -> Stage:
@@ -118,8 +113,13 @@ def create_main_menu_stage(greeting: str) -> Stage:
                                                        [buttons["end_dialog_button"]]]))
 
 
-def create_selecting_order_stage(number: int) -> Stage:
+def create_selecting_order_stage(lines: list[tuple]) -> Stage:
+    buttons = [[i_button(text=line[0], callback_data=f"order_{line[1]}")] for line in lines] 
     return Stage("Ваши заказы:", 
-                 i_keyboard(inline_keyboard=[[i_button(text=f"Заказ {i + 1}", 
-                                                       callback_data=f"order_{i + 1}")] 
-                                            for i in range(number)] + [[create_return_button("menu")]]))
+                 i_keyboard(inline_keyboard=buttons+[[create_return_button("menu")]]))
+
+
+def create_order_stage(line: tuple) -> Stage:
+    return Stage(f"Заказ ({line[2]})\nТип перевозки: {line[3]}\nКол-во контейнеров: {line[4]}\nВид контейнера: {line[5]} футов\nМаршрут: {line[6]} - {line[7]}\nВес груза: {line[8]}\nПеревозка завершена: {line[9]}\nСодержимое груза: {line[10]}\nКол-во мест: {line[11]}\n□ - Морское плечо\n□ - Ж/Д плечо\n□ - Транспортировка до терминала\n■ - Последние мили",
+                 i_keyboard(inline_keyboard=[[buttons["ask_chat_button"]], 
+                                             [create_return_button("orders")]]))

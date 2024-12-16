@@ -35,15 +35,14 @@ class Client:
     def get_client_cargos(cls, db_config: dict[str, str], client_id: int) -> list[tuple]:
         command: str = f'SELECT * FROM public."client_cargo" JOIN public."cargos" ON public."cargos".cargo_id = public."client_cargo".cargo_id WHERE public."client_cargo".client_id={client_id}'
         result: list[tuple] = execute_select_command(command, db_config)
-        return [(index,) + line[3:] for index, line in enumerate(result, 1)]
+        return [line[3:] for line in result]
 
 
     def __init__(self, db_config: dict[str, str], secret_key: str) -> None:
         result: tuple | None = Client.get_client_row(db_config, secret_key)
         if result:
-            self.__client_id, self.__surname, self.__name, self.__last_name, self.__email, self.__secret_key, self.__phone_number, self.__company, self.__manager_id = result
+            self.__client_id, self.__surname, self.__name, self.__last_name, self.__email, self.__secret_key, self.__company = result
             self.__client_id: int = int(self.__client_id)
-            self.__manager_id: int = int(self.__manager_id)
             self.__cargos: list[tuple] = Client.get_client_cargos(db_config, self.__client_id)
         else:
             raise IncorrectKey("Secret key is not valid")
@@ -55,10 +54,8 @@ class Client:
                             {self.__name}, 
                             {self.__last_name}, 
                             {self.__email}, 
-                            {self.__secret_key}, 
-                            {self.__phone_number}, 
-                            {self.__company}, 
-                            {self.__manager_id})"""
+                            {self.__secret_key},  
+                            {self.__company})"""
 
 
     def greeting(self) -> str:
@@ -66,24 +63,15 @@ class Client:
         return f"Здравствуйте, уважаем{middle} {self.__name} {self.__last_name}! Выберите необходимый пункт меню:"
 
     
-    def cargos(self) -> list[tuple]:
-        return self.__cargos
+    def cargo_detailed(self, number: int) -> tuple:
+        return self.__cargos[number - 1]
+
+
+    def cargos_small(self) -> list[tuple[str, int]]:
+        return [(f"Заказ {index} ({cargo[2]})", index) for index, cargo in enumerate(self.__cargos, 1)]
 
 
     @classmethod
     def answers(cls, db_config: dict[str, str]) -> list[tuple]:
         command: str = 'SELECT * FROM public."questions"'
         return execute_select_command(command, db_config)
-
-@dataclass
-class Manager:
-    manager_id: int
-    surname: str
-    name: str
-    last_name: str
-    marks_count: int
-    avg_quality_of_service: float
-    avg_communication_efficiency: float
-    avg_professionalism_level: float
-    avg_ability_of_problem_solving: float
-    avg_speed_of_work: float

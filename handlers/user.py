@@ -11,6 +11,7 @@ from postgres import Client, IncorrectKey
 
 
 logger.add(sink="debug.log", format="{time} {message}", level="DEBUG", rotation="100 KB")
+photos = {}
 
 
 def connect_with_manager(dct: dict[int, int | None]) -> int | None:
@@ -95,7 +96,6 @@ async def after_auth(message: Message, state: FSMContext, db_config, client_db) 
     try:
         client_obj = Client(db_config, message.text)
         client_db[message.from_user.id] = client_obj
-        await state.update_data(key=message.text)
         stage: kb.Stage = kb.create_main_menu_stage(client_obj.greeting())
         await message.answer(text=stage.text, reply_markup=stage.keyboard)
         await state.clear()
@@ -131,28 +131,36 @@ async def goto_city(callback: CallbackQuery) -> None:
 
 
 @user_router.callback_query(F.data == "geography")
-async def goto_geography(callback: CallbackQuery) -> None:
+async def goto_geography(callback: CallbackQuery, bot_var: Bot) -> None:
     # list geography cart
     assert isinstance(callback.message, Message)
+    global photos
+    if photos.get(callback.from_user.id) is None:
+        msg = await bot_var.send_photo(chat_id=callback.from_user.id, photo="AgACAgIAAxkBAAIK4WdgO_EjGmlaMz5oozeJN_y72AaGAAJI6jEbCKwISzA3oOcaWXrHAQADAgADeQADNgQ")
+        photos[callback.from_user.id] = msg.message_id
     stage: kb.Stage = kb.stages["geography"]
     assert isinstance(stage.keyboard, InlineKeyboardMarkup)
     await callback.message.edit_text(text=stage.text, reply_markup=stage.keyboard)
 
 
 @user_router.callback_query(F.data == "info")
-async def goto_answers(callback: CallbackQuery) -> None:
+async def goto_answers(callback: CallbackQuery, bot_var: Bot) -> None:
     # list available information about LOGOPER
     assert isinstance(callback.message, Message)
+    global photos
+    if x := photos.get(callback.from_user.id):
+        await bot_var.delete_message(callback.from_user.id, x)
+        del photos[callback.from_user.id]
     stage: kb.Stage = kb.stages["info"]
     assert isinstance(stage.keyboard, InlineKeyboardMarkup)
     await callback.message.edit_text(text=stage.text, reply_markup=stage.keyboard)
 
 
 @user_router.callback_query(F.data == "orders")
-async def goto_orders_list(callback: CallbackQuery) -> None:
+async def goto_orders_list(callback: CallbackQuery, client_db) -> None:
     # list client's orders
     assert isinstance(callback.message, Message)
-    stage: kb.Stage = kb.create_selecting_order_stage(1)
+    stage: kb.Stage = kb.create_selecting_order_stage(client_db[callback.from_user.id].cargos_small())
     assert isinstance(stage.keyboard, InlineKeyboardMarkup)
     await callback.message.edit_text(text=stage.text, reply_markup=stage.keyboard)
 
@@ -161,17 +169,18 @@ async def goto_orders_list(callback: CallbackQuery) -> None:
 async def command_end(callback: CallbackQuery, state: FSMContext) -> None:
     # finish bot dialog
     assert isinstance(callback.message, Message)
-    stage = kb.stages["end"]
+    stage: kb.Stage = kb.stages["end"]
     assert isinstance(stage.keyboard, ReplyKeyboardMarkup)
     await state.set_state(Exit.flag)
     await callback.message.answer(text=stage.text, reply_markup=stage.keyboard)
  
 
-@user_router.callback_query(F.data == "order_1")
-async def goto_order(callback: CallbackQuery) -> None:
+@user_router.callback_query(lambda cb: cb.data.startswith("order_"))
+async def goto_order(callback: CallbackQuery, client_db) -> None:
     # list information about selected order 
-    assert isinstance(callback.message, Message)
-    stage: kb.Stage = kb.stages["order"]
+    assert isinstance(callback.message, Message) and isinstance(callback.data, str)
+    number = int(callback.data.replace("order_", ''))
+    stage: kb.Stage = kb.create_order_stage(client_db[callback.from_user.id].cargo_detailed(number))
     assert isinstance(stage.keyboard, InlineKeyboardMarkup)
     await callback.message.edit_text(text=stage.text, reply_markup=stage.keyboard)
 
